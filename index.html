@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ECEFF6" />
+  <title>mBank@Net — Loans</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =========================================================
+       Design tokens (from Figma "OTP Light" styles)
+       ========================================================= */
+    :root {
+      --bg:              #ECEFF6;
+      --bg-soft:         #F6F7FA;
+      --slider-track:    #E3E8F1;
+      --card:            #FFFFFF;
+      --green:           #52AE30;
+      --blue:            #1B82E3;
+      --orange:          #FF6600;
+      --text:            #151617;
+      --text-soft:       #7D828B;
+      --shadow-card:     0 4px 4px rgba(166, 173, 186, 0.24);
+      --shadow-soft:     0 2px 5px rgba(0, 0, 0, 0.05);
+      --radius-card:     10px;
+      --radius-chip:     8px;
+      --slider-blue:     var(--blue);
+    }
+
+    /* Reset */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Lato', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      color-scheme: light;
+    }
+
+    button { font: inherit; color: inherit; background: none; border: none; }
+
+    /* Phone frame: phone-shaped on desktop, full-bleed on mobile */
+    body {
+      background: #2c2c2c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .app {
+      width: 375px;
+      height: 100vh;
+      max-height: 812px;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+    }
+
+    @media (max-width: 414px) {
+      body { background: var(--bg); }
+      .app { width: 100%; height: 100vh; max-height: none; box-shadow: none; }
+    }
+
+    /* =========================================================
+       Screens (single-page routing via class toggle)
+       ========================================================= */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      background: var(--bg);
+    }
+    .screen--active { display: flex; }
+
+    /* =========================================================
+       Top nav
+       ========================================================= */
+    .top-nav { background: #FFFFFF; flex-shrink: 0; }
+
+    .status-bar {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 21px;
+      font: 600 15px/20px 'SF Pro Text', system-ui, sans-serif;
+      letter-spacing: -0.24px;
+    }
+    .status-icons { display: flex; align-items: center; gap: 5px; }
+
+    .title-bar {
+      height: 48px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .title-side { width: 96px; display: flex; align-items: center; gap: 16px; }
+    .title-side--right { justify-content: flex-end; }
+
+    .title-logo {
+      font: 700 17px/1 'Lato', sans-serif;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+    .title-logo .logo-grey { color: var(--text-soft); }
+    .title-logo .logo-bold { font-weight: 900; }
+    .title-logo .logo-at   { color: var(--text-soft); font-weight: 900; }
+
+    .title-text-bold {
+      font: 700 17px/1 'Lato', sans-serif;
+      color: var(--text-soft);
+    }
+
+    .icon-btn {
+      padding: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+    }
+    .icon-btn:active { background: rgba(0, 0, 0, 0.05); }
+
+    .back-btn {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--green);
+      font: 400 17px/1 'Lato', sans-serif;
+      padding: 0;
+    }
+    .back-btn:active { opacity: 0.6; }
+
+    /* =========================================================
+       Chip bar (tabs)
+       ========================================================= */
+    .chip-bar {
+      flex-shrink: 0;
+      background: var(--bg);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .chip-bar::-webkit-scrollbar { display: none; }
+
+    .chip-row {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .chip {
+      background: #FFFFFF;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-chip);
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      font: 700 12px/normal 'Lato', sans-serif;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: var(--green);
+      transition: transform 0.08s ease;
+    }
+    .chip:active { transform: scale(0.97); }
+    .chip[data-tab="benefits"] { color: var(--orange); }
+    .chip--active              { background: var(--green); color: #FFFFFF; }
+
+    .chip-text { color: currentColor; }
+    .chip-icon { color: currentColor; flex-shrink: 0; }
+
+    /* =========================================================
+       Content (loans home + generic)
+       ========================================================= */
+    .content {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* Never let the flex column squish a card to fit. Cards that set
+       overflow:hidden (e.g. the promo banner) would otherwise have
+       min-height auto resolve to 0 and collapse. Scroll instead. */
+    .content > * { flex-shrink: 0; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius-card);
+      padding: 16px;
+      box-shadow: var(--shadow-card);
+    }
+
+    .card--intro { display: flex; flex-direction: column; gap: 8px; }
+    .intro-row { display: flex; align-items: center; gap: 8px; }
+    .intro-icon {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .intro-title { font: 900 18px/1 'Lato', sans-serif; color: var(--text); }
+    .intro-desc  { font: 400 14px/1.3 'Lato', sans-serif; color: var(--text); }
+
+    /* =========================================================
+       Slider card
+       ========================================================= */
+    .card--slider { box-shadow: var(--shadow-soft); }
+
+    .slider-header { display: flex; flex-direction: column; gap: 4px; }
+    .slider-label  { font: 400 14px/1 'Lato', sans-serif; color: var(--text); }
+    .slider-value  { font: 700 16px/1.4 'Lato', sans-serif; color: var(--text); }
+    .slider-line   { border: none; border-top: 1px solid var(--slider-track); margin: 2px 0 0; }
+
+    .slider-control { padding-top: 8px; }
+
+    .slider-wrap { position: relative; }
+
+    /* Threshold tick mark (set --tick-ratio to a 0..1 value via JS) */
+    .slider-tick {
+      position: absolute;
+      top: 50%;
+      left: calc(16px + (100% - 32px) * var(--tick-ratio, 0.5));
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 14px;
+      background: #FFFFFF;
+      border-radius: 1px;
+      box-shadow: 0 0 0 1px rgba(21, 22, 23, 0.18);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .slider-bounds {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      font: 400 14px/1 'Lato', sans-serif;
+      color: var(--text);
+    }
+
+    /* One-click "set to 10.000 EUR" shortcut — always visible, dot recolours past threshold */
+    .slider-aside {
+      margin-top: 10px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: var(--bg-soft);
+      border-radius: var(--radius-chip);
+      cursor: pointer;
+      font: 400 12px/1.3 'Lato', sans-serif;
+      color: var(--text-soft);
+      text-align: left;
+      transition: background 0.15s ease;
+    }
+    .slider-aside:hover   { background: #EDF1F8; }
+    .slider-aside:active  { background: #DDE3ED; }
+    .slider-aside[hidden] { display: none; }
+    .slider-aside strong  { color: var(--text); font-weight: 700; }
+    .slider-aside .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+    }
+    .slider-aside--over .dot   { background: var(--orange); }
+    .slider-aside .aside-text  { flex: 1; }
+    .slider-aside .aside-arrow { color: var(--green); flex-shrink: 0; }
+
+    /* =========================================================
+       Custom range slider
+       ========================================================= */
+    .custom-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 32px;
+      background: transparent;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      z-index: 2;
+      --fill: 50%;
+      --thumb-svg: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'><path d='M3 8h10m0 0L9 4m4 4L9 12' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    }
+
+    .custom-slider::-webkit-slider-runnable-track {
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(
+        to right,
+        var(--slider-blue) 0%,
+        var(--slider-blue) var(--fill),
+        var(--slider-track) var(--fill),
+        var(--slider-track) 100%
+      );
+    }
+    .custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--slider-blue) var(--thumb-svg) center / 16px no-repeat;
+      border: none;
+      margin-top: -12px;
+      cursor: grab;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .custom-slider:active::-webkit-slider-thumb { cursor: grabbing; }
+
+    .custom-slider::-moz-range-track {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--slider-track);
+    }
+    .custom-slider::-moz-range-progress {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--slider-blue);
+    }
+    .custom-slider::-moz-range-thumb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--slider-blue) var(--thumb-svg) center / 16px no-repeat;
+      border: none;
+      cursor: grab;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .custom-slider:active::-moz-range-thumb { cursor: grabbing; }
+
+    /* =========================================================
+       Summary card + START
+       ========================================================= */
+    .card--summary { display: flex; align-items: center; gap: 8px; }
+    .summary-text  { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .summary-label { font: 400 14px/1 'Lato', sans-serif; color: var(--text); }
+    .summary-value { font: 700 16px/1 'Lato', sans-serif; color: var(--text); }
+
+    .btn {
+      background: var(--green);
+      color: #FFFFFF;
+      border-radius: var(--radius-chip);
+      padding: 8px 16px;
+      height: 33px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font: 700 12px/normal 'Lato', sans-serif;
+      text-transform: uppercase;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.08s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .card-actions { display: flex; gap: 8px; padding-top: 8px; }
+
+    /* =========================================================
+       Promotion banner (replaces the "intro" card on the home)
+       ========================================================= */
+    .promo-banner {
+      position: relative;
+      border-radius: var(--radius-card);
+      padding: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+      isolation: isolate;
+    }
+    .promo-banner[hidden] { display: none; }
+
+    /* Variant A — personalised offer (dark overlay on warm gradient,
+       placeholder until a real photo asset is wired in). */
+    .promo-banner[data-variant="offer"] {
+      background:
+        linear-gradient(135deg, rgba(21, 22, 23, 0.55), rgba(21, 22, 23, 0.75)),
+        linear-gradient(135deg, #c89e7b 0%, #8b5e3c 45%, #4a3829 100%);
+    }
+    /* Variant B — generic discovery CTA (brand green gradient). */
+    .promo-banner[data-variant="discovery"] {
+      background: linear-gradient(135deg, #52AE30 0%, #2D7B1D 100%);
+    }
+
+    .promo-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #FFFFFF;
+      border-radius: 4px;
+    }
+    .promo-close:active { background: rgba(255, 255, 255, 0.15); }
+
+    .promo-title {
+      color: #FFFFFF;
+      font: 900 16px/1.3 'Lato', sans-serif;
+      padding-right: 32px; /* clear the close X */
+    }
+
+    .promo-cta {
+      background: var(--bg-soft);
+      color: var(--text);
+      height: 32px;
+      padding: 8px 16px;
+      border-radius: var(--radius-chip);
+      font: 700 12px/1 'Lato', sans-serif;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* =========================================================
+       Existing loan card + labelled loans-home sections
+       ========================================================= */
+    .section--loans,
+    .section--calc { margin-top: 8px; }
+
+    .existing-loan {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .el-header { display: flex; flex-direction: column; gap: 2px; }
+    .el-name   { font: 900 16px/1.2 'Lato', sans-serif; color: var(--text); text-transform: uppercase; }
+    .el-type   { font: 400 14px/1.2 'Lato', sans-serif; color: var(--text-soft); text-transform: uppercase; }
+
+    .el-divider {
+      border: none;
+      border-top: 1px solid var(--slider-track);
+      margin: 8px 0 0;
+    }
+
+    .el-graph {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 4px;
+    }
+    .el-labels {
+      display: flex;
+      justify-content: space-between;
+      font: 400 14px/1 'Lato', sans-serif;
+      color: var(--text);
+    }
+    .el-progress {
+      height: 17px;
+      background: var(--slider-track);
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .el-progress-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--fill, 0%);
+      background: var(--blue);
+      border-radius: 20px;
+      transition: width 0.3s ease;
+    }
+    .el-values { display: flex; justify-content: space-between; }
+    .el-value  { font: 700 16px/1 'Lato', sans-serif; }
+    .el-value--paid  { color: var(--green); }
+    .el-value--total { color: var(--text); }
+
+    .el-actions {
+      display: flex;
+      gap: 8px;
+      padding-top: 12px;
+    }
+    .el-actions .btn {
+      flex: 1;
+      justify-content: center;
+    }
+
+    /* Neutral / "secondary" button — pairs with the green primary */
+    .btn.btn--neutral {
+      background: var(--bg-soft);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    /* =========================================================
+       Bottom nav
+       ========================================================= */
+    .bottom-nav {
+      background: #FFFFFF;
+      border-top: 1px solid var(--slider-track);
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 16px 0;
+      flex-shrink: 0;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      padding: 0;
+      width: 51px;
+      color: var(--text);
+    }
+    .nav-item span {
+      font: 600 10px/1 'Lato', sans-serif;
+      text-align: center;
+      color: inherit;
+    }
+    .nav-item--active { color: var(--green); }
+
+    .home-indicator {
+      background: #FFFFFF;
+      height: 34px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .home-indicator::after {
+      content: "";
+      width: 134px;
+      height: 5px;
+      background: var(--text);
+      border-radius: 100px;
+    }
+
+    /* =========================================================
+       Apply screen (mLoan)
+       ========================================================= */
+    .content--apply {
+      gap: 24px;
+      padding: 16px 16px 180px; /* leave room for floating footer */
+    }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .section-label {
+      padding: 0 16px;
+      font: 900 12px/1 'Lato', sans-serif;
+      color: var(--text-soft);
+      letter-spacing: 0.247px;
+      text-transform: uppercase;
+    }
+
+    .card-stack { display: flex; flex-direction: column; gap: 8px; }
+
+    /* "How much would you like?" amount editor */
+    .ap-label  { font: 400 14px/1 'Lato', sans-serif; color: var(--text); }
+    .ap-value  { font: 700 16px/1 'Lato', sans-serif; color: var(--text); }
+    .ap-subtext{ font: 700 12px/1 'Lato', sans-serif; color: var(--text-soft); }
+    .ap-hint   { font: 700 12px/1.2 'Lato', sans-serif; color: var(--text-soft); }
+    .ap-label--soft, .ap-value--soft { color: var(--text-soft); }
+
+    .amount-card { display: flex; flex-direction: column; gap: 4px; }
+
+    .amount-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .square-btn {
+      background: var(--green);
+      color: #FFFFFF;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-chip);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      flex-shrink: 0;
+      transition: transform 0.08s ease;
+    }
+    .square-btn:active { transform: scale(0.94); }
+    .square-btn:disabled {
+      background: #c4dcb8;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .amount-input-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 0;
+    }
+    .amount-input {
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+    }
+    .amount-value {
+      font: 700 32px/1.1 'Lato', sans-serif;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .amount-caret {
+      display: inline-block;
+      width: 1.5px;
+      height: 36px;
+      background: var(--text);
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* Row card with title + value + action icon */
+    .card--row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .row-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+    .row-action {
+      width: 20px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .info-chip {
+      background: var(--bg-soft);
+      height: 33px;
+      padding: 8px 16px;
+      border-radius: var(--radius-chip);
+      cursor: pointer;
+      font: 700 12px/1 'Lato', sans-serif;
+      color: var(--text);
+      text-transform: uppercase;
+    }
+
+    /* Floating footer (tip + NEXT) */
+    .apply-footer {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 50px; /* above home indicator */
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .footer-tip {
+      font: 400 14px/1.3 'Lato', sans-serif;
+      color: var(--text);
+      text-align: center;
+    }
+    .footer-tip b { font-weight: 900; }
+
+    .btn-large {
+      width: 100%;
+      height: 51px;
+      border-radius: var(--radius-card);
+      background: var(--green);
+      color: #FFFFFF;
+      font: 700 16px/1 'Lato', sans-serif;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: var(--shadow-card);
+      transition: transform 0.08s ease;
+    }
+    .btn-large:active { transform: scale(0.98); }
+
+    /* =========================================================
+       Bottomsheet modal (for >10K browser redirect)
+       ========================================================= */
+    .bottomsheet {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .bottomsheet[aria-hidden="false"] { pointer-events: auto; }
+
+    .bottomsheet-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(21, 22, 23, 0.45);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .bottomsheet[aria-hidden="false"] .bottomsheet-backdrop { opacity: 1; }
+
+    .bottomsheet-panel {
+      position: relative;
+      width: 100%;
+      background: #FFFFFF;
+      border-radius: 20px 20px 0 0;
+      padding: 8px 24px 32px;
+      transform: translateY(100%);
+      transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12);
+    }
+    .bottomsheet[aria-hidden="false"] .bottomsheet-panel { transform: translateY(0); }
+
+    .bottomsheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--slider-track);
+      border-radius: 2px;
+      margin: 8px auto 16px;
+    }
+
+    .bottomsheet-title {
+      font: 900 20px/1.2 'Lato', sans-serif;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .bottomsheet-body {
+      font: 400 14px/1.45 'Lato', sans-serif;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .bottomsheet-body b { font-weight: 900; }
+
+    .bottomsheet-summary {
+      background: var(--bg-soft);
+      border-radius: var(--radius-card);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .bottomsheet-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .bottomsheet-row-label {
+      font: 400 14px/1 'Lato', sans-serif;
+      color: var(--text-soft);
+    }
+    .bottomsheet-row-value {
+      font: 700 14px/1 'Lato', sans-serif;
+      color: var(--text);
+    }
+
+    .bottomsheet-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn--ghost {
+      background: transparent;
+      color: var(--text-soft);
+      box-shadow: none;
+      height: 44px;
+      width: 100%;
+      border-radius: var(--radius-card);
+      font: 700 14px/1 'Lato', sans-serif;
+      text-transform: none;
+      cursor: pointer;
+    }
+    .btn--ghost:active { background: var(--bg-soft); }
+
+    /* =========================================================
+       Redirect overlay (browser-open simulation)
+       ========================================================= */
+    .redirect-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 60;
+    }
+    .redirect-overlay[aria-hidden="false"] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .redirect-overlay-spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid var(--slider-track);
+      border-top-color: var(--green);
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .redirect-overlay-text {
+      font: 700 16px/1.3 'Lato', sans-serif;
+      color: var(--text);
+      text-align: center;
+    }
+    .redirect-overlay-sub {
+      font: 400 13px/1.3 'Lato', sans-serif;
+      color: var(--text-soft);
+      text-align: center;
+      max-width: 240px;
+    }
+
+    /* =========================================================
+       Prototype tooltips — designer notes for reviewers, shown
+       on desktop hover only. Not visible to end users on touch.
+       Add data-prototype-tooltip="…" to any annotatable element.
+       ========================================================= */
+    [data-prototype-tooltip] {
+      position: relative;
+      /* Make every annotated element its own small stacking context, so the
+         tooltip pseudo-element always paints above sibling stacking contexts
+         (e.g. the slider thumb at z-index: 2). */
+      z-index: 5;
+    }
+    /* Never transform an annotated element on :active — it would scale the
+       tooltip pseudo-element with the host and look like a flash on click. */
+    [data-prototype-tooltip]:active { transform: none !important; }
+
+    [data-prototype-tooltip]::before,
+    [data-prototype-tooltip]::after {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease 0.25s;
+      z-index: 200;
+    }
+
+    [data-prototype-tooltip]::before {
+      content: attr(data-prototype-tooltip);
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: max-content;
+      max-width: 240px;
+      background: #151617;
+      color: #FFFFFF;
+      font: 400 11px/1.45 'Lato', sans-serif;
+      text-transform: none;
+      letter-spacing: 0;
+      text-align: left;
+      padding: 8px 10px;
+      border-radius: 6px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      white-space: normal;
+    }
+
+    [data-prototype-tooltip]::after {
+      content: "";
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border: 6px solid transparent;
+      border-top-color: #151617;
+    }
+
+    /* Anchor variants — keep tooltip box inside the phone frame on edge elements.
+       The arrow stays centered under the element so it still points at it. */
+    [data-prototype-tooltip-anchor="right"]::before {
+      left: auto;
+      right: 0;
+      transform: none;
+    }
+    [data-prototype-tooltip-anchor="left"]::before {
+      left: 0;
+      right: auto;
+      transform: none;
+    }
+
+    @media (hover: hover) {
+      [data-prototype-tooltip]:hover::before,
+      [data-prototype-tooltip]:hover::after { opacity: 1; }
+    }
+
+    /* Tips on/off toggle (top-left of header, prototype-only). */
+    .proto-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+    }
+    .proto-toggle-track {
+      position: relative;
+      width: 28px;
+      height: 16px;
+      border-radius: 8px;
+      background: #C5CCD8;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+    .proto-toggle[aria-checked="true"] .proto-toggle-track { background: var(--green); }
+    .proto-toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease;
+    }
+    .proto-toggle[aria-checked="true"] .proto-toggle-knob { transform: translateX(12px); }
+    .proto-toggle-label {
+      font: 700 10px/1 'Lato', sans-serif;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* When tips are off, suppress every annotation tooltip. */
+    body.tips-off [data-prototype-tooltip]::before,
+    body.tips-off [data-prototype-tooltip]::after {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN 1 — Loans home (calculator)
+         ═══════════════════════════════════════════════════════ -->
+    <section class="screen screen--active" data-screen="loans">
+
+      <header class="top-nav">
+        <div class="status-bar" aria-hidden="true">
+          <span class="time">9:41</span>
+          <div class="status-icons">
+            <svg viewBox="0 0 18 11" width="18" height="11"><rect x="0" y="7" width="3" height="4" rx="0.8" fill="#151617"/><rect x="4.7" y="5" width="3" height="6" rx="0.8" fill="#151617"/><rect x="9.4" y="2.5" width="3" height="8.5" rx="0.8" fill="#151617"/><rect x="14" y="0" width="3" height="11" rx="0.8" fill="#151617"/></svg>
+            <svg viewBox="0 0 16 11" width="16" height="11"><path d="M8 0a11 11 0 017.7 3.1l-1.1 1.1a9.5 9.5 0 00-13.2 0L.3 3.1A11 11 0 018 0zm0 3.5a7.5 7.5 0 015.4 2.2l-1.1 1.1a6 6 0 00-8.6 0L2.6 5.7A7.5 7.5 0 018 3.5zm0 3.5a4 4 0 012.9 1.2l-2.9 2.9-2.9-2.9A4 4 0 018 7z" fill="#151617"/></svg>
+            <svg viewBox="0 0 25 11" width="25" height="11"><rect x="0.5" y="0.5" width="21" height="10" rx="2.5" fill="none" stroke="#151617" stroke-opacity="0.35"/><rect x="22.5" y="3.5" width="1.5" height="4" rx="0.6" fill="#151617" fill-opacity="0.4"/><rect x="2" y="2" width="18" height="7" rx="1.3" fill="#151617"/></svg>
+          </div>
+        </div>
+
+        <div class="title-bar">
+          <div class="title-side">
+            <button class="proto-toggle" id="protoToggle" type="button" role="switch" aria-checked="true" aria-label="Toggle prototype tips">
+              <span class="proto-toggle-track" aria-hidden="true">
+                <span class="proto-toggle-knob"></span>
+              </span>
+              <span class="proto-toggle-label">Tips</span>
+            </button>
+          </div>
+          <div class="title-logo">
+            <span class="logo-grey">m</span><span class="logo-grey logo-bold">Bank</span><span class="logo-at">@</span><span class="logo-grey logo-bold">Net</span>
+          </div>
+          <div class="title-side title-side--right">
+            <button class="icon-btn" aria-label="Accessibility" type="button">
+              <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#52AE30" d="M12 2.5a2 2 0 110 4 2 2 0 010-4zm9 6.5l-5.5 1.6v3.6L17 21.6l-1.9.5-1.7-7.6h-2.8l-1.7 7.6-1.9-.5 1.5-7.4v-3.6L3 9l.5-2 5.6 1.6h5.8L20.5 7l.5 2z"/></svg>
+            </button>
+            <button class="icon-btn" aria-label="Chatbot" type="button">
+              <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#52AE30" d="M21 5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2v4l4-4h8a2 2 0 002-2V5zM8 11a1 1 0 110-2 1 1 0 010 2zm4 0a1 1 0 110-2 1 1 0 010 2zm4 0a1 1 0 110-2 1 1 0 010 2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <nav class="chip-bar" aria-label="Categories">
+        <div class="chip-row">
+          <button class="chip" data-tab="benefits" type="button">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2l2.05 4.16 4.59.67-3.32 3.24.78 4.57L8 11.68 3.9 13.84l.78-4.57L1.36 6.03l4.59-.67L8 1.2z"/></svg>
+            <span class="chip-text">benefits</span>
+          </button>
+          <button class="chip" data-tab="accounts" type="button">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 4h12a1 1 0 011 1v6a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zm9.5 4a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/></svg>
+            <span class="chip-text">accounts</span>
+          </button>
+          <button class="chip" data-tab="cards" type="button">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4a1 1 0 011-1zm0 3v1.2h12V6H2zm1 3v3h5V9H3z"/></svg>
+            <span class="chip-text">cards</span>
+          </button>
+          <button class="chip" data-tab="savings" type="button">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14 7.7c0-1.46-.62-2.78-1.6-3.7l.4-2.5-2.5 1A6.5 6.5 0 008 1.5c-3.05 0-5.6 2.05-6.13 4.78L1 6.5v2l.87.5c.32.93.85 1.74 1.55 2.36v1.94c0 .27.22.5.5.5H5c.28 0 .5-.23.5-.5v-1h3v1c0 .27.22.5.5.5h1.08c.28 0 .5-.23.5-.5v-1.94c1.16-1.02 1.92-2.5 2.04-4.16H14V7.7zM10 6.7a.5.5 0 110-1 .5.5 0 010 1z"/></svg>
+            <span class="chip-text">savings</span>
+          </button>
+          <button class="chip chip--active" data-tab="loans" type="button" aria-current="page">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2h6.5L13 5.5V14a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm6.5 1.2V5h1.8L9.5 3.2zM5 8h6v1H5V8zm0 2h6v1H5v-1zm0-4h3v1H5V6z"/></svg>
+            <span class="chip-text">loans</span>
+          </button>
+          <button class="chip" data-tab="investments" type="button">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M14 4l-5 5-3-3-5 5 1.06 1.06L6 8.12l3 3 6.06-6.06V8h1.4V4z"/></svg>
+            <span class="chip-text">investments</span>
+          </button>
+        </div>
+      </nav>
+
+      <main class="content">
+
+        <section class="promo-banner" id="promoBanner" data-variant="offer">
+          <button class="promo-close" id="promoClose" type="button" aria-label="Switch banner variant">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <p class="promo-title" id="promoTitle">Stanko, you have up to 5000€ loan offer.</p>
+          <button class="promo-cta" id="promoApply" type="button">Apply</button>
+        </section>
+
+        <!-- ─── Existing loans ─── -->
+        <div class="section section--loans">
+          <div class="section-label">Your loans</div>
+          <section class="card existing-loan">
+            <div class="el-header">
+              <p class="el-name">LOAN NAPREJ</p>
+              <p class="el-type">LOAN</p>
+            </div>
+            <hr class="el-divider" />
+            <div class="el-graph">
+              <div class="el-labels">
+                <span>Paid principal</span>
+                <span>Approved amount</span>
+              </div>
+              <div class="el-progress" role="progressbar"
+                   aria-valuenow="33" aria-valuemin="0" aria-valuemax="100">
+                <div class="el-progress-fill" style="--fill: 33%"></div>
+              </div>
+              <div class="el-values">
+                <span class="el-value el-value--paid">10.000,00 EUR</span>
+                <span class="el-value el-value--total">5.000,00 EUR</span>
+              </div>
+            </div>
+            <div class="el-actions">
+              <button class="btn" id="payBtn" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M21.5 2.5l-9.4 18.7-2-9-9-2L21.5 2.5z"/>
+                </svg>
+                <span>Pay</span>
+              </button>
+              <button class="btn btn--neutral" id="optionsBtn" type="button">
+                <span>Options</span>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <circle cx="8" cy="3" r="1.5"/>
+                  <circle cx="8" cy="8" r="1.5"/>
+                  <circle cx="8" cy="13" r="1.5"/>
+                </svg>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- ─── New loan calculator ─── -->
+        <div class="section section--calc">
+        <div class="section-label">New loan</div>
+
+        <section class="card card--slider">
+          <div class="slider-header">
+            <p class="slider-label">Informative loan amount</p>
+            <p class="slider-value" id="amountValue">15.000,00 EUR</p>
+            <hr class="slider-line" />
+          </div>
+          <div class="slider-control">
+            <div class="slider-wrap" id="amountSliderWrap">
+              <input type="range" id="amountSlider" class="custom-slider"
+                min="200" max="50000" value="15000" step="100" aria-label="Loan amount" />
+              <div class="slider-tick" aria-hidden="true"></div>
+            </div>
+            <div class="slider-bounds">
+              <span>200,00 EUR</span>
+              <span>50.000,00 EUR</span>
+            </div>
+            <button class="slider-aside" id="amountAside" type="button"
+              data-prototype-tooltip="Prototype note: this banner appears when the client is pre-qualified for mLoan. It's a one-tap shortcut to the fastest path (≤ 10.000 EUR). Above the threshold the dot turns orange as a subtle cue, but the slider isn't blocked.">
+              <span class="dot" aria-hidden="true"></span>
+              <span class="aside-text">Up to <strong>10.000 EUR</strong> available as fast in-app mLoan</span>
+              <svg class="aside-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="card card--slider">
+          <div class="slider-header">
+            <p class="slider-label">Payment period</p>
+            <p class="slider-value" id="periodValue">60 months</p>
+            <hr class="slider-line" />
+          </div>
+          <div class="slider-control">
+            <input type="range" id="periodSlider" class="custom-slider"
+              min="3" max="119" value="60" step="1" aria-label="Payment period in months" />
+            <div class="slider-bounds">
+              <span>3 months</span>
+              <span>119 months</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card card--summary">
+          <div class="summary-text">
+            <p class="summary-label">Monthly payment</p>
+            <p class="summary-value" id="monthlyValue">289,30 EUR</p>
+          </div>
+          <button class="btn" id="startBtn" type="button"
+            data-prototype-tooltip="Prototype note: routes to the best-fit flow. mLoan-eligible client and amount ≤ 10.000 EUR → in-app mLoan flow. Otherwise → hand off to Kredit Naprej in the browser, with amount and period carried over so nothing has to be retyped."
+            data-prototype-tooltip-anchor="right">
+            <span>start</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="#FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </section>
+
+        <div class="card-actions">
+          <button class="chip" type="button">
+            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span class="chip-text">detailed calculation</span>
+          </button>
+          <button class="chip" type="button">
+            <span class="chip-text">More</span>
+          </button>
+        </div>
+        </div><!-- /section--calc -->
+      </main>
+
+      <nav class="bottom-nav" aria-label="Main">
+        <button class="nav-item nav-item--active" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2L21.5 11h-2.5v9h-5v-6h-4v6H4.5v-9H2L12 3.2z"/></svg>
+          <span>Home</span>
+        </button>
+        <button class="nav-item" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M5 7h14l-1 13H6L5 7z"/><path d="M9 7V5a3 3 0 016 0v2"/></svg>
+          <span>Requests</span>
+        </button>
+        <button class="nav-item" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 2.5l-9.4 18.7-2-9-9-2L21.5 2.5z"/></svg>
+          <span>Send &amp; Pay</span>
+        </button>
+        <button class="nav-item" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg>
+          <span>Inbox</span>
+        </button>
+        <button class="nav-item" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.5 12c0-.4 0-.7-.1-1l2-1.5-2-3.5-2.4.9c-.5-.4-1-.8-1.7-1l-.4-2.5h-4l-.4 2.5c-.6.2-1.2.6-1.7 1l-2.4-.9-2 3.5L6.6 11c-.1.3-.1.7-.1 1s0 .7.1 1l-2 1.5 2 3.5 2.4-.9c.5.4 1 .8 1.7 1l.4 2.5h4l.4-2.5c.6-.2 1.2-.6 1.7-1l2.4.9 2-3.5L19.4 13c.1-.3.1-.7.1-1zM12 15a3 3 0 110-6 3 3 0 010 6z"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="home-indicator" aria-hidden="true"></div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         SCREEN 2 — mLoan Apply (≤10K flow)
+         ═══════════════════════════════════════════════════════ -->
+    <section class="screen" data-screen="apply">
+
+      <header class="top-nav">
+        <div class="status-bar" aria-hidden="true">
+          <span class="time">9:41</span>
+          <div class="status-icons">
+            <svg viewBox="0 0 18 11" width="18" height="11"><rect x="0" y="7" width="3" height="4" rx="0.8" fill="#151617"/><rect x="4.7" y="5" width="3" height="6" rx="0.8" fill="#151617"/><rect x="9.4" y="2.5" width="3" height="8.5" rx="0.8" fill="#151617"/><rect x="14" y="0" width="3" height="11" rx="0.8" fill="#151617"/></svg>
+            <svg viewBox="0 0 16 11" width="16" height="11"><path d="M8 0a11 11 0 017.7 3.1l-1.1 1.1a9.5 9.5 0 00-13.2 0L.3 3.1A11 11 0 018 0zm0 3.5a7.5 7.5 0 015.4 2.2l-1.1 1.1a6 6 0 00-8.6 0L2.6 5.7A7.5 7.5 0 018 3.5zm0 3.5a4 4 0 012.9 1.2l-2.9 2.9-2.9-2.9A4 4 0 018 7z" fill="#151617"/></svg>
+            <svg viewBox="0 0 25 11" width="25" height="11"><rect x="0.5" y="0.5" width="21" height="10" rx="2.5" fill="none" stroke="#151617" stroke-opacity="0.35"/><rect x="22.5" y="3.5" width="1.5" height="4" rx="0.6" fill="#151617" fill-opacity="0.4"/><rect x="2" y="2" width="18" height="7" rx="1.3" fill="#151617"/></svg>
+          </div>
+        </div>
+
+        <div class="title-bar">
+          <button class="title-side back-btn" id="backBtn" type="button">
+            <svg width="12" height="20" viewBox="0 0 12 20" fill="none" aria-hidden="true">
+              <path d="M10 2L2 10l8 8" stroke="#52AE30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Back</span>
+          </button>
+          <div class="title-text-bold">Hi, Stanko</div>
+          <div class="title-side title-side--right"></div>
+        </div>
+      </header>
+
+      <main class="content content--apply">
+
+        <!-- DETAILS -->
+        <div class="section">
+          <div class="section-label">Details</div>
+          <div class="card-stack">
+
+            <div class="card amount-card">
+              <p class="ap-label">How much would you like?</p>
+              <div class="amount-row">
+                <button class="square-btn" id="amountMinus" aria-label="Decrease amount" type="button">
+                  <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8h10" stroke="#FFF" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <div class="amount-input-wrap">
+                  <div class="amount-input">
+                    <span class="amount-value" id="applyAmountValue">5000</span>
+                    <span class="amount-caret" aria-hidden="true"></span>
+                  </div>
+                  <hr class="slider-line" />
+                </div>
+                <button class="square-btn" id="amountPlus" aria-label="Increase amount" type="button">
+                  <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="#FFF" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <p class="ap-hint">Maximum mLoan amount is 10.000 EUR</p>
+            </div>
+
+            <div class="card card--row">
+              <div class="row-content">
+                <p class="ap-label">How many months to repay?</p>
+                <p class="ap-value" id="applyMonthsValue">60 months</p>
+                <p class="ap-subtext" id="applyYearsValue">5 years</p>
+              </div>
+              <button class="row-action" type="button" aria-label="Edit period">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M3 14.5V17h2.5l9-9-2.5-2.5-9 9zM16.7 5.5a1 1 0 000-1.4l-1.8-1.8a1 1 0 00-1.4 0L12 3.7 16.3 8l1.4-1.4-1-1.1z" fill="#151617"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="card card--row">
+              <div class="row-content">
+                <p class="ap-label">Choose your repayment date 8, 18, 28 in month</p>
+                <p class="ap-value">18. in month</p>
+              </div>
+              <button class="row-action" type="button" aria-label="Choose date">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M7 4l6 6-6 6" stroke="#151617" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- INFORMATIVE CALCULATION -->
+        <div class="section">
+          <div class="section-label">Informative calculation</div>
+          <div class="card-stack">
+
+            <div class="card">
+              <p class="ap-label ap-label--soft">Monthly payment</p>
+              <p class="ap-value ap-value--soft" id="applyMonthlyValue" style="margin-top:4px">176,80 EUR</p>
+            </div>
+
+            <div class="card">
+              <p class="ap-label ap-label--soft">Interest rate</p>
+              <p class="ap-value ap-value--soft" style="margin-top:4px">2.20%</p>
+            </div>
+
+            <div class="card card--row">
+              <div class="row-content">
+                <p class="ap-label ap-label--soft">Effective interest rate</p>
+                <p class="ap-value ap-value--soft">5,22%</p>
+              </div>
+              <button class="info-chip" type="button">info</button>
+            </div>
+
+            <div class="card-actions">
+              <button class="chip" type="button">
+                <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="chip-text">detailed calculation</span>
+              </button>
+              <button class="chip" type="button">
+                <span class="chip-text">more</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <div class="apply-footer">
+        <p class="footer-tip">Please <b>check</b> all prefilled data on the form and <b>update</b> if necessary.</p>
+        <button class="btn-large" id="nextBtn" type="button">Next</button>
+      </div>
+
+      <div class="home-indicator" aria-hidden="true"></div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         BOTTOMSHEET — >10K browser redirect explainer
+         ═══════════════════════════════════════════════════════ -->
+    <div class="bottomsheet" id="bottomsheet" aria-hidden="true" role="dialog" aria-labelledby="bsheetTitle">
+      <div class="bottomsheet-backdrop" data-action="close-sheet"></div>
+      <div class="bottomsheet-panel">
+        <div class="bottomsheet-handle" aria-hidden="true"></div>
+        <h3 class="bottomsheet-title" id="bsheetTitle">We'll continue in your browser</h3>
+        <p class="bottomsheet-body">
+          Loans above <b>10.000 EUR</b> are available as <b>Kredit Naprej</b> through web banking.
+          We'll open the application in your browser — your loan amount and period will be carried over,
+          so you won't have to retype anything.
+        </p>
+        <div class="bottomsheet-summary">
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Amount</span>
+            <span class="bottomsheet-row-value" id="bsheetAmount">25.000,00 EUR</span>
+          </div>
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Payment period</span>
+            <span class="bottomsheet-row-value" id="bsheetPeriod">60 months</span>
+          </div>
+        </div>
+        <div class="bottomsheet-actions">
+          <button class="btn-large" id="bsheetConfirm" type="button">Continue in browser</button>
+          <button class="btn--ghost" data-action="close-sheet" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         REDIRECT OVERLAY — simulates browser open
+         ═══════════════════════════════════════════════════════ -->
+    <div class="redirect-overlay" id="redirectOverlay" aria-hidden="true">
+      <div class="redirect-overlay-spinner" aria-hidden="true"></div>
+      <p class="redirect-overlay-text">Opening web banking…</p>
+      <p class="redirect-overlay-sub">Your inputs are being passed to your browser session.</p>
+    </div>
+
+  </div>
+
+
+  <script>
+    /* =========================================================
+       Loan info calculator — prototype logic.
+       Tweak CONFIG to try out different prototype versions.
+       ========================================================= */
+    const CONFIG = {
+      annualRate: 0.0590,          // ~5.9% — gives ≈ 289,30 EUR for default 15.000 / 60
+      mLoanThreshold: 10000,       // ≤ this → mLoan in-app, > this → Kredit Naprej (browser)
+      mLoanMin: 200,
+      mLoanMax: 10000,
+      mLoanStep: 100,
+      defaults: { amount: 15000, months: 60 },
+    };
+
+    /* ---------- formatting helpers ---------- */
+    function formatEUR(amount) {
+      const fixed = Math.max(0, amount).toFixed(2);
+      const [intPart, decPart] = fixed.split('.');
+      const intWithSep = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return `${intWithSep},${decPart} EUR`;
+    }
+    function formatMonths(m) {
+      return `${m} ${m === 1 ? 'month' : 'months'}`;
+    }
+    function monthsToYearsLabel(months) {
+      const y = Math.floor(months / 12);
+      const m = months % 12;
+      if (y === 0) return `${m} month${m === 1 ? '' : 's'}`;
+      if (m === 0) return `${y} year${y === 1 ? '' : 's'}`;
+      return `${y} year${y === 1 ? '' : 's'} ${m} month${m === 1 ? '' : 's'}`;
+    }
+
+    /* ---------- loan math ---------- */
+    function calculateMonthlyPayment(principal, months, annualRate) {
+      if (months <= 0) return 0;
+      const r = annualRate / 12;
+      if (r === 0) return principal / months;
+      const factor = Math.pow(1 + r, months);
+      return (principal * r * factor) / (factor - 1);
+    }
+
+    /* ---------- shared state ---------- */
+    const state = {
+      amount: CONFIG.defaults.amount,
+      months: CONFIG.defaults.months,
+    };
+
+    /* ---------- DOM refs ---------- */
+    const $ = (id) => document.getElementById(id);
+
+    // Screen 1
+    const $amountSlider     = $('amountSlider');
+    const $periodSlider     = $('periodSlider');
+    const $amountValue      = $('amountValue');
+    const $periodValue      = $('periodValue');
+    const $monthlyValue     = $('monthlyValue');
+    const $startBtn         = $('startBtn');
+    const $amountAside      = $('amountAside');
+    const $amountSliderWrap = $('amountSliderWrap');
+
+    // Screen 2 (apply)
+    const $applyAmountValue  = $('applyAmountValue');
+    const $applyMonthsValue  = $('applyMonthsValue');
+    const $applyYearsValue   = $('applyYearsValue');
+    const $applyMonthlyValue = $('applyMonthlyValue');
+    const $amountMinus       = $('amountMinus');
+    const $amountPlus        = $('amountPlus');
+    const $backBtn           = $('backBtn');
+    const $nextBtn           = $('nextBtn');
+
+    // Bottomsheet + overlay
+    const $bottomsheet     = $('bottomsheet');
+    const $bsheetAmount    = $('bsheetAmount');
+    const $bsheetPeriod    = $('bsheetPeriod');
+    const $bsheetConfirm   = $('bsheetConfirm');
+    const $redirectOverlay = $('redirectOverlay');
+
+    // Tabs
+    const $chipBar    = document.querySelector('.chip-bar');
+    const $activeChip = document.querySelector('.chip--active');
+
+    /* ---------- screen routing ---------- */
+    function showScreen(name) {
+      document.querySelectorAll('.screen').forEach((s) => {
+        s.classList.toggle('screen--active', s.dataset.screen === name);
+      });
+    }
+
+    /* ---------- slider painting ---------- */
+    function paintSlider(slider) {
+      const min = +slider.min;
+      const max = +slider.max;
+      const val = +slider.value;
+      const pct = ((val - min) / (max - min)) * 100;
+      slider.style.setProperty('--fill', pct + '%');
+    }
+
+    function setAmountThresholdTick() {
+      const min = +$amountSlider.min;
+      const max = +$amountSlider.max;
+      const ratio = (CONFIG.mLoanThreshold - min) / (max - min);
+      $amountSliderWrap.style.setProperty('--tick-ratio', ratio);
+    }
+
+    function updateAmountAside(amount) {
+      // Always visible & clickable — dot turns orange above the threshold as a soft cue;
+      // we don't spell out the redirect until the user actually presses START.
+      $amountAside.classList.toggle('slider-aside--over', amount > CONFIG.mLoanThreshold);
+    }
+
+    function quickSetMLoanMax() {
+      $amountSlider.value = CONFIG.mLoanThreshold;
+      paintSlider($amountSlider);
+      recalc();
+    }
+
+    /* ---------- screen 1 recalc ---------- */
+    function recalc() {
+      state.amount = +$amountSlider.value;
+      state.months = +$periodSlider.value;
+
+      $amountValue.textContent = formatEUR(state.amount);
+      $periodValue.textContent = formatMonths(state.months);
+
+      const monthly = calculateMonthlyPayment(state.amount, state.months, CONFIG.annualRate);
+      $monthlyValue.textContent = formatEUR(monthly);
+
+      updateAmountAside(state.amount);
+    }
+
+    /* ---------- screen 2 (apply) ---------- */
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function syncApplyScreen() {
+      // amount is clamped to mLoan range (we should only get here if amount ≤ 10K)
+      const amt = clamp(state.amount, CONFIG.mLoanMin, CONFIG.mLoanMax);
+      state.amount = amt;
+      $applyAmountValue.textContent = String(amt);
+
+      $applyMonthsValue.textContent = formatMonths(state.months);
+      $applyYearsValue.textContent  = monthsToYearsLabel(state.months);
+
+      const monthly = calculateMonthlyPayment(amt, state.months, CONFIG.annualRate);
+      $applyMonthlyValue.textContent = formatEUR(monthly);
+
+      $amountMinus.disabled = amt <= CONFIG.mLoanMin;
+      $amountPlus.disabled  = amt >= CONFIG.mLoanMax;
+    }
+
+    function adjustApplyAmount(delta) {
+      const next = clamp(state.amount + delta, CONFIG.mLoanMin, CONFIG.mLoanMax);
+      if (next === state.amount) return;
+      state.amount = next;
+      syncApplyScreen();
+    }
+
+    /* ---------- bottomsheet ---------- */
+    function openBottomsheet() {
+      $bsheetAmount.textContent = formatEUR(state.amount);
+      $bsheetPeriod.textContent = formatMonths(state.months);
+      $bottomsheet.setAttribute('aria-hidden', 'false');
+    }
+    function closeBottomsheet() {
+      $bottomsheet.setAttribute('aria-hidden', 'true');
+    }
+
+    /* ---------- redirect overlay ---------- */
+    function showRedirect() {
+      $redirectOverlay.setAttribute('aria-hidden', 'false');
+      // Auto-dismiss after a short pause so the prototype keeps moving.
+      setTimeout(() => {
+        $redirectOverlay.setAttribute('aria-hidden', 'true');
+      }, 1800);
+    }
+
+    /* ---------- start flow ---------- */
+    function onStart() {
+      if (state.amount <= CONFIG.mLoanThreshold) {
+        // Fast mLoan path — go to apply screen with values transferred
+        syncApplyScreen();
+        showScreen('apply');
+      } else {
+        // Kredit Naprej path — explain redirect, then "open browser"
+        openBottomsheet();
+      }
+    }
+
+    /* ---------- init ---------- */
+    function init() {
+      // Sliders
+      $amountSlider.value = state.amount;
+      $periodSlider.value = state.months;
+      [$amountSlider, $periodSlider].forEach((slider) => {
+        paintSlider(slider);
+        slider.addEventListener('input', () => {
+          paintSlider(slider);
+          recalc();
+        });
+      });
+      setAmountThresholdTick();
+      recalc();
+
+      // Centre the active chip
+      if ($chipBar && $activeChip) {
+        const target = $activeChip.offsetLeft - $chipBar.clientWidth / 2 + $activeChip.offsetWidth / 2;
+        $chipBar.scrollLeft = Math.max(0, target);
+      }
+
+      // START
+      $startBtn.addEventListener('click', onStart);
+
+      // One-click "set to 10.000 EUR" shortcut
+      $amountAside.addEventListener('click', quickSetMLoanMax);
+
+      // Promo banner — X toggles between the two variants for prototype testing
+      // (in production X would dismiss). Apply on either variant routes to the
+      // mLoan apply screen; syncApplyScreen() clamps state.amount into range.
+      const $promoBanner = document.getElementById('promoBanner');
+      const $promoTitle  = document.getElementById('promoTitle');
+      const PROMO_COPY = {
+        offer:     'Stanko, you have up to 5000€ loan offer.',
+        discovery: 'Find out how much you can get',
+      };
+      document.getElementById('promoClose')?.addEventListener('click', () => {
+        const next = $promoBanner.dataset.variant === 'offer' ? 'discovery' : 'offer';
+        $promoBanner.dataset.variant = next;
+        if ($promoTitle) $promoTitle.textContent = PROMO_COPY[next];
+      });
+      document.getElementById('promoApply')?.addEventListener('click', () => {
+        syncApplyScreen();
+        showScreen('apply');
+      });
+
+      // Apply screen wiring
+      $amountMinus.addEventListener('click', () => adjustApplyAmount(-CONFIG.mLoanStep));
+      $amountPlus .addEventListener('click', () => adjustApplyAmount(+CONFIG.mLoanStep));
+      $backBtn.addEventListener('click', () => showScreen('loans'));
+      $nextBtn.addEventListener('click', () => {
+        console.log('[loan-prototype] NEXT (mLoan apply step 1 → step 2)', { ...state });
+      });
+
+      // Bottomsheet wiring
+      document.querySelectorAll('[data-action="close-sheet"]').forEach((el) => {
+        el.addEventListener('click', closeBottomsheet);
+      });
+      $bsheetConfirm.addEventListener('click', () => {
+        closeBottomsheet();
+        showRedirect();
+        console.log('[loan-prototype] REDIRECT to Kredit Naprej (browser)', { ...state });
+      });
+
+      // Tips toggle (prototype reviewer tool) — persists across reloads
+      const $protoToggle = document.getElementById('protoToggle');
+      const setTipsEnabled = (on) => {
+        document.body.classList.toggle('tips-off', !on);
+        $protoToggle.setAttribute('aria-checked', String(on));
+        try { localStorage.setItem('protoTipsEnabled', on ? '1' : '0'); } catch {}
+      };
+      $protoToggle.addEventListener('click', () => {
+        setTipsEnabled($protoToggle.getAttribute('aria-checked') !== 'true');
+      });
+      let initialTipsOn = true;
+      try {
+        const stored = localStorage.getItem('protoTipsEnabled');
+        if (stored !== null) initialTipsOn = stored === '1';
+      } catch {}
+      setTipsEnabled(initialTipsOn);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

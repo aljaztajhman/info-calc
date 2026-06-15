@@ -207,19 +207,6 @@
       box-shadow: var(--shadow-card);
     }
 
-    .card--intro { display: flex; flex-direction: column; gap: 8px; }
-    .intro-row { display: flex; align-items: center; gap: 8px; }
-    .intro-icon {
-      width: 32px;
-      height: 32px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .intro-title { font: 900 18px/1 'Lato', sans-serif; color: var(--text); }
-    .intro-desc  { font: 400 14px/1.3 'Lato', sans-serif; color: var(--text); }
-
     /* =========================================================
        Slider card
        ========================================================= */
@@ -393,6 +380,10 @@
       gap: 12px;
       align-items: flex-start;
       isolation: isolate;
+      /* Fixed banner height (fits a 2-line title + CTA) so every banner is the
+         same size regardless of which slides are visible — keeps the carousel
+         identical between Phase 1 and Phase 2. */
+      min-height: 124px;
     }
     .promo-banner[hidden] { display: none; }
 
@@ -408,25 +399,9 @@
       background: linear-gradient(135deg, #52AE30 0%, #2D7B1D 100%);
     }
 
-    .promo-close {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-      width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: #FFFFFF;
-      border-radius: 4px;
-    }
-    .promo-close:active { background: rgba(255, 255, 255, 0.15); }
-
     .promo-title {
       color: #FFFFFF;
       font: 900 16px/1.3 'Lato', sans-serif;
-      padding-right: 32px; /* clear the close X */
     }
 
     .promo-cta {
@@ -732,8 +707,16 @@
       justify-content: center;
       pointer-events: none;
       z-index: 50;
+      /* Remove closed sheets from hit-testing AND the tab order — but only after
+         the panel has slid out, so the close animation still plays. */
+      visibility: hidden;
+      transition: visibility 0s linear 0.32s;
     }
-    .bottomsheet[aria-hidden="false"] { pointer-events: auto; }
+    .bottomsheet[aria-hidden="false"] {
+      pointer-events: auto;
+      visibility: visible;
+      transition: visibility 0s;
+    }
 
     .bottomsheet-backdrop {
       position: absolute;
@@ -936,54 +919,299 @@
       [data-prototype-tooltip]:hover::after { opacity: 1; }
     }
 
-    /* Tips on/off toggle (top-left of header, prototype-only). */
-    .proto-toggle {
+    /* =========================================================
+       Phase switch (prototype-only, top-left of header).
+       Phase 1 ships consumer loans; Phase 2 reveals every element
+       marked .phase-2-only (housing banner, loan card, calculator).
+       ========================================================= */
+    .phase-switch {
+      display: inline-flex;
+      background: var(--bg-soft);
+      border: 1px solid var(--slider-track);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .phase-opt {
+      font: 700 10px/1 'Lato', sans-serif;
+      letter-spacing: 0.3px;
+      padding: 5px 7px;
+      border-radius: 4px;
+      color: var(--text); /* AA-readable at 10px; muted state carried by lack of fill */
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .phase-opt--active { background: #256B19; color: #FFFFFF; } /* darker green → AA white-on-green */
+
+    /* Phase 1 hides every Phase-2 (housing) element in place. */
+    .app[data-phase="1"] .phase-2-only { display: none !important; }
+
+    /* Housing banner — cool blue, distinct from consumer's warm gradient */
+    .promo-banner[data-variant="housing"] {
+      background:
+        linear-gradient(135deg, rgba(21, 22, 23, 0.45), rgba(21, 22, 23, 0.65)),
+        linear-gradient(135deg, #4A90E2 0%, #1565C0 55%, #0D47A1 100%);
+    }
+
+    /* =========================================================
+       Housing calculator — insurance radios, offers, results
+       ========================================================= */
+
+    /* Insurance radio block */
+    .insurance-card { display: flex; flex-direction: column; gap: 4px; }
+    .insurance-card .ap-label { margin-bottom: 4px; }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      cursor: pointer;
+      position: relative; /* containing block for the hidden radio, so focusing
+                             it never scroll-jumps the page out of the content */
+    }
+    .radio-option input[type="radio"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .radio-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #C5CCD8;
+      position: relative;
+      flex-shrink: 0;
+      transition: border-color 0.15s ease;
+    }
+    .radio-option input[type="radio"]:checked + .radio-circle { border-color: var(--green); }
+    .radio-option input[type="radio"]:checked + .radio-circle::after {
+      content: "";
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+    .radio-text { font: 400 14px/1.3 'Lato', sans-serif; color: var(--text); }
+
+    /* Result card (one per product offering) */
+    .result-card { display: flex; flex-direction: column; gap: 10px; }
+    .result-meta {
+      font: 700 10px/1.3 'Lato', sans-serif;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+    }
+    .result-title { font: 900 18px/1.2 'Lato', sans-serif; color: var(--text); }
+    .result-rows { display: flex; flex-direction: column; gap: 4px; }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      font: 400 14px/1.3 'Lato', sans-serif;
+      color: var(--text);
+    }
+    .result-row > span:last-child { font-weight: 700; text-align: right; }
+
+    .result-monthly {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding-top: 8px;
+      margin-top: 4px;
+      border-top: 1px solid var(--slider-track);
+    }
+    .result-monthly-value { font: 900 24px/1 'Lato', sans-serif; color: var(--text); }
+    .result-monthly-unit  { font: 400 13px/1 'Lato', sans-serif; color: var(--text-soft); }
+
+    .result-actions { display: flex; gap: 8px; padding-top: 4px; }
+    .result-actions > .btn-pill {
+      flex: 1;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      font: 700 13px/1 'Lato', sans-serif;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
-      padding: 4px;
+      color: #FFFFFF;
+    }
+    .btn-pill--interested { background: var(--orange); }
+
+    /* Expectation note under the housing offer CTA — housing is a
+       branch-assisted product, so the tap books a callback, not an
+       instant application. Say so before the tap, not after. */
+    .result-callback-note {
+      font: 400 12px/1.4 'Lato', sans-serif;
+      color: var(--text-soft);
+      text-align: center;
+    }
+
+    .show-more {
+      align-self: center;
+      background: transparent;
+      cursor: pointer;
+      color: var(--green);
+      font: 700 12px/1 'Lato', sans-serif;
+      text-decoration: underline;
+      padding: 4px 8px;
+    }
+
+    /* Extra detail rows + "More" link — hidden until the card is expanded */
+    .result-row--extra,
+    .result-more-link { display: none; }
+    .result-card--expanded .result-row--extra { display: flex; }
+    .result-card--expanded .result-more-link {
+      display: inline-block;
+      align-self: flex-start;
+      color: var(--green);
+      font: 700 13px/1 'Lato', sans-serif;
       cursor: pointer;
       background: transparent;
-      border: none;
+      padding: 2px 0;
+      margin-top: 2px;
     }
-    .proto-toggle-track {
-      position: relative;
-      width: 28px;
-      height: 16px;
-      border-radius: 8px;
-      background: #C5CCD8;
-      transition: background 0.2s ease;
-      flex-shrink: 0;
-    }
-    .proto-toggle[aria-checked="true"] .proto-toggle-track { background: var(--green); }
-    .proto-toggle-knob {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 12px;
-      height: 12px;
+
+    /* Confirmation bottomsheet on submit */
+    .submitted-icon {
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
-      background: #FFFFFF;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-      transition: transform 0.2s ease;
+      background: rgba(82, 174, 48, 0.12);
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
     }
-    .proto-toggle[aria-checked="true"] .proto-toggle-knob { transform: translateX(12px); }
-    .proto-toggle-label {
-      font: 700 10px/1 'Lato', sans-serif;
+    .bottomsheet-centered .bottomsheet-title,
+    .bottomsheet-centered .bottomsheet-body { text-align: center; }
+
+    /* Segmented control (e.g. Earmarked / Cash payout) */
+    .segmented-control {
+      display: flex;
+      background: var(--slider-track); /* darker track so the white active pill is visible */
+      border-radius: 8px;
+      padding: 3px;
+      margin-top: 4px;
+    }
+    .seg-option {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-soft);
+      font: 700 13px/1 'Lato', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .seg-option--active {
+      background: #FFFFFF;
+      color: var(--green);
+      box-shadow: 0 1px 4px rgba(21, 22, 23, 0.18);
+    }
+
+    /* Chip-bar edge fade — visual cue that more chips extend beyond the viewport. */
+    .chip-bar {
+      -webkit-mask-image: linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%);
+      mask-image:         linear-gradient(to right, transparent 0, black 24px, black calc(100% - 24px), transparent 100%);
+    }
+
+    /* Branch picker inside the "I'm interested" bottomsheet */
+    .branch-label {
+      display: block;
+      font: 700 11px/1 'Lato', sans-serif;
       color: var(--text-soft);
       text-transform: uppercase;
       letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+    .branch-select-wrap {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .branch-select {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      padding: 12px 36px 12px 12px;
+      background: var(--bg-soft);
+      border: 1px solid var(--slider-track);
+      border-radius: 8px;
+      font: 400 16px/1.3 'Lato', sans-serif; /* ≥16px stops iOS Safari auto-zoom on focus */
+      color: var(--text);
+      cursor: pointer;
+    }
+    .branch-select-chevron {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-soft);
+      pointer-events: none;
     }
 
-    /* When tips are off, suppress every annotation tooltip. */
-    body.tips-off [data-prototype-tooltip]::before,
-    body.tips-off [data-prototype-tooltip]::after {
-      display: none !important;
+    /* Bottomsheet may now contain a longer summary + branch picker — let the
+       panel scroll internally on shorter screens rather than overflowing. */
+    .bottomsheet-panel {
+      max-height: 90%;
+      overflow-y: auto;
     }
+
+    /* =========================================================
+       Hero carousel (3 rotating banners)
+       ========================================================= */
+    .carousel { width: 100%; }
+    .carousel-track {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .carousel-track::-webkit-scrollbar { display: none; }
+    .carousel-slide {
+      flex: 0 0 100%;
+      min-width: 100%;
+      scroll-snap-align: center;
+      display: flex;
+    }
+    .carousel-slide > .promo-banner { width: 100%; }
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .carousel-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #C5CCD8;
+      padding: 0;
+      cursor: pointer;
+      transition: width 0.2s ease, background 0.2s ease, border-radius 0.2s ease;
+    }
+    .carousel-dot--active { width: 18px; border-radius: 3px; background: var(--green); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .carousel-track { scroll-behavior: auto; }
+    }
+
+    /* Calculator product panels (Personal / Housing) */
+    .calc-panel { display: flex; flex-direction: column; gap: 8px; }
+    .calc-panel[hidden] { display: none; }
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" data-phase="1">
 
     <!-- ═══════════════════════════════════════════════════════
          SCREEN 1 — Loans home (calculator)
@@ -1002,12 +1230,10 @@
 
         <div class="title-bar">
           <div class="title-side">
-            <button class="proto-toggle" id="protoToggle" type="button" role="switch" aria-checked="true" aria-label="Toggle prototype tips">
-              <span class="proto-toggle-track" aria-hidden="true">
-                <span class="proto-toggle-knob"></span>
-              </span>
-              <span class="proto-toggle-label">Tips</span>
-            </button>
+            <div class="phase-switch" role="group" aria-label="Prototype phase">
+              <button class="phase-opt phase-opt--active" data-phase="1" type="button" title="Phase 1 — Consumer loans only (Loan naprej / mLoan)">P1</button>
+              <button class="phase-opt" data-phase="2" type="button" title="Phase 2 — adds Housing loans">P2</button>
+            </div>
           </div>
           <div class="title-logo">
             <span class="logo-grey">m</span><span class="logo-grey logo-bold">Bank</span><span class="logo-at">@</span><span class="logo-grey logo-bold">Net</span>
@@ -1054,23 +1280,43 @@
 
       <main class="content">
 
-        <section class="promo-banner" id="promoBanner" data-variant="offer">
-          <button class="promo-close" id="promoClose" type="button" aria-label="Switch banner variant">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
-          <p class="promo-title" id="promoTitle">Stanko, you have up to 5000€ loan offer.</p>
-          <button class="promo-cta" id="promoApply" type="button">Apply</button>
-        </section>
+        <!-- ═══ HERO CAROUSEL (3 rotating banners) ═══ -->
+        <div class="carousel" id="carousel">
+          <div class="carousel-track" id="carouselTrack">
 
-        <!-- ─── Existing loans ─── -->
+            <div class="carousel-slide">
+              <section class="promo-banner" data-variant="offer">
+                <p class="promo-title">Stanko, you have up to 5000€ loan offer.</p>
+                <button class="promo-cta" id="promoApply" type="button">Apply</button>
+              </section>
+            </div>
+
+            <div class="carousel-slide">
+              <section class="promo-banner" data-variant="discovery">
+                <p class="promo-title">Find out how much you can get.</p>
+                <button class="promo-cta" id="discoveryCalc" type="button">Calculate</button>
+              </section>
+            </div>
+
+            <div class="carousel-slide phase-2-only">
+              <section class="promo-banner" data-variant="housing">
+                <p class="promo-title">Looking to buy a home?</p>
+                <button class="promo-cta" id="housingCalcCta" type="button">Calculate</button>
+              </section>
+            </div>
+
+          </div>
+          <div class="carousel-dots" id="carouselDots" aria-hidden="true"></div>
+        </div>
+
+        <!-- ─── Existing loans (one personal + one housing) ─── -->
         <div class="section section--loans">
           <div class="section-label">Your loans</div>
+
           <section class="card existing-loan">
             <div class="el-header">
               <p class="el-name">LOAN NAPREJ</p>
-              <p class="el-type">LOAN</p>
+              <p class="el-type">Personal loan</p>
             </div>
             <hr class="el-divider" />
             <div class="el-graph">
@@ -1083,8 +1329,8 @@
                 <div class="el-progress-fill" style="--fill: 33%"></div>
               </div>
               <div class="el-values">
-                <span class="el-value el-value--paid">10.000,00 EUR</span>
-                <span class="el-value el-value--total">5.000,00 EUR</span>
+                <span class="el-value el-value--paid">3.300,00 EUR</span>
+                <span class="el-value el-value--total">10.000,00 EUR</span>
               </div>
             </div>
             <div class="el-actions">
@@ -1104,81 +1350,247 @@
               </button>
             </div>
           </section>
+
+          <section class="card existing-loan">
+            <div class="el-header">
+              <p class="el-name">Stanovanjski kredit</p>
+              <p class="el-type">Housing loan</p>
+            </div>
+            <hr class="el-divider" />
+            <div class="el-graph">
+              <div class="el-labels">
+                <span>Paid principal</span>
+                <span>Approved amount</span>
+              </div>
+              <div class="el-progress" role="progressbar"
+                   aria-valuenow="44" aria-valuemin="0" aria-valuemax="100">
+                <div class="el-progress-fill" style="--fill: 44%"></div>
+              </div>
+              <div class="el-values">
+                <span class="el-value el-value--paid">35.000,00 EUR</span>
+                <span class="el-value el-value--total">80.000,00 EUR</span>
+              </div>
+            </div>
+            <div class="el-actions">
+              <button class="btn" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M21.5 2.5l-9.4 18.7-2-9-9-2L21.5 2.5z"/>
+                </svg>
+                <span>Pay</span>
+              </button>
+              <button class="btn btn--neutral" type="button">
+                <span>Options</span>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <circle cx="8" cy="3" r="1.5"/>
+                  <circle cx="8" cy="8" r="1.5"/>
+                  <circle cx="8" cy="13" r="1.5"/>
+                </svg>
+              </button>
+            </div>
+          </section>
         </div>
 
-        <!-- ─── New loan calculator ─── -->
-        <div class="section section--calc">
-        <div class="section-label">New loan</div>
+        <!-- ─── Unified loan calculator (Personal / Housing) ─── -->
+        <div class="section section--calc" id="calcSection">
+          <div class="section-label">Loan calculator</div>
 
-        <section class="card card--slider">
-          <div class="slider-header">
-            <p class="slider-label">Informative loan amount</p>
-            <p class="slider-value" id="amountValue">15.000,00 EUR</p>
-            <hr class="slider-line" />
-          </div>
-          <div class="slider-control">
-            <div class="slider-wrap" id="amountSliderWrap">
-              <input type="range" id="amountSlider" class="custom-slider"
-                min="200" max="50000" value="15000" step="100" aria-label="Loan amount" />
-              <div class="slider-tick" aria-hidden="true"></div>
+          <!-- Product selector (Phase 2 — hidden while only consumer loans ship) -->
+          <section class="card phase-2-only">
+            <p class="ap-label">What would you like to calculate?</p>
+            <div class="segmented-control">
+              <button class="seg-option seg-option--active" data-calc-product="personal" type="button">Personal loan</button>
+              <button class="seg-option" data-calc-product="housing" type="button">Housing loan</button>
             </div>
-            <div class="slider-bounds">
-              <span>200,00 EUR</span>
-              <span>50.000,00 EUR</span>
+          </section>
+
+          <!-- ── PERSONAL calculator panel ── -->
+          <div class="calc-panel" data-calc-panel="personal">
+
+            <section class="card card--slider">
+              <div class="slider-header">
+                <p class="slider-label">Informative loan amount</p>
+                <p class="slider-value" id="amountValue">15.000,00 EUR</p>
+                <hr class="slider-line" />
+              </div>
+              <div class="slider-control">
+                <div class="slider-wrap" id="amountSliderWrap">
+                  <input type="range" id="amountSlider" class="custom-slider"
+                    min="200" max="50000" value="15000" step="100" aria-label="Loan amount" />
+                  <div class="slider-tick" aria-hidden="true"></div>
+                </div>
+                <div class="slider-bounds">
+                  <span>200,00 EUR</span>
+                  <span>50.000,00 EUR</span>
+                </div>
+                <button class="slider-aside" id="amountAside" type="button"
+                  data-prototype-tooltip="Prototype note: this banner appears when the client is pre-qualified for mLoan. It's a one-tap shortcut to the fastest path (≤ 10.000 EUR). Above the threshold the dot turns orange as a subtle cue, but the slider isn't blocked.">
+                  <span class="dot" aria-hidden="true"></span>
+                  <span class="aside-text">Up to <strong>10.000 EUR</strong> available as fast in-app mLoan</span>
+                  <svg class="aside-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </section>
+
+            <section class="card card--slider">
+              <div class="slider-header">
+                <p class="slider-label">Payment period</p>
+                <p class="slider-value" id="periodValue">60 months</p>
+                <hr class="slider-line" />
+              </div>
+              <div class="slider-control">
+                <input type="range" id="periodSlider" class="custom-slider"
+                  min="3" max="119" value="60" step="1" aria-label="Payment period in months" />
+                <div class="slider-bounds">
+                  <span>3 months</span>
+                  <span>119 months</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card card--summary">
+              <div class="summary-text">
+                <p class="summary-label">Monthly payment</p>
+                <p class="summary-value" id="monthlyValue">289,30 EUR</p>
+              </div>
+              <button class="btn" id="startBtn" type="button"
+                data-prototype-tooltip="Prototype note: routes to the best-fit flow. mLoan-eligible client and amount ≤ 10.000 EUR → in-app mLoan flow. Otherwise → hand off to Kredit Naprej in the browser, with amount and period carried over so nothing has to be retyped."
+                data-prototype-tooltip-anchor="right">
+                <span>start</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="#FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </section>
+
+            <div class="card-actions">
+              <button class="chip" type="button">
+                <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="chip-text">detailed calculation</span>
+              </button>
+              <button class="chip" type="button">
+                <span class="chip-text">More</span>
+              </button>
             </div>
-            <button class="slider-aside" id="amountAside" type="button"
-              data-prototype-tooltip="Prototype note: this banner appears when the client is pre-qualified for mLoan. It's a one-tap shortcut to the fastest path (≤ 10.000 EUR). Above the threshold the dot turns orange as a subtle cue, but the slider isn't blocked.">
-              <span class="dot" aria-hidden="true"></span>
-              <span class="aside-text">Up to <strong>10.000 EUR</strong> available as fast in-app mLoan</span>
-              <svg class="aside-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
-        </section>
+          </div><!-- /calc-panel personal -->
 
-        <section class="card card--slider">
-          <div class="slider-header">
-            <p class="slider-label">Payment period</p>
-            <p class="slider-value" id="periodValue">60 months</p>
-            <hr class="slider-line" />
-          </div>
-          <div class="slider-control">
-            <input type="range" id="periodSlider" class="custom-slider"
-              min="3" max="119" value="60" step="1" aria-label="Payment period in months" />
-            <div class="slider-bounds">
-              <span>3 months</span>
-              <span>119 months</span>
+          <!-- ── HOUSING calculator panel ── -->
+          <div class="calc-panel phase-2-only" data-calc-panel="housing" hidden>
+
+            <section class="card">
+              <p class="ap-label">Loan type</p>
+              <div class="segmented-control">
+                <button class="seg-option" data-loan-type="earmarked" type="button">Earmarked</button>
+                <button class="seg-option seg-option--active" data-loan-type="cash" type="button">Cash payout</button>
+              </div>
+            </section>
+
+            <section class="card insurance-card">
+              <p class="ap-label">Choose insurance</p>
+              <label class="radio-option">
+                <input type="radio" name="hous-insurance" value="real-estate" checked />
+                <span class="radio-circle" aria-hidden="true"></span>
+                <span class="radio-text">Loan insurance with real estate</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="hous-insurance" value="triglav" />
+                <span class="radio-circle" aria-hidden="true"></span>
+                <span class="radio-text">Triglav insurance premium</span>
+              </label>
+            </section>
+
+            <section class="card card--slider">
+              <div class="slider-header">
+                <p class="slider-label">Loan amount</p>
+                <p class="slider-value" id="housAmountValue">50.000,00 EUR</p>
+                <hr class="slider-line" />
+              </div>
+              <div class="slider-control">
+                <input type="range" id="housAmountSlider" class="custom-slider"
+                  min="5000" max="150000" value="50000" step="1000" aria-label="Loan amount" />
+                <div class="slider-bounds">
+                  <span>5.000,00 EUR</span>
+                  <span>150.000,00 EUR</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card card--slider">
+              <div class="slider-header">
+                <p class="slider-label">Repayment period</p>
+                <p class="slider-value" id="housPeriodValue">180 months</p>
+                <hr class="slider-line" />
+              </div>
+              <div class="slider-control">
+                <input type="range" id="housPeriodSlider" class="custom-slider"
+                  min="13" max="240" value="180" step="1" aria-label="Repayment period" />
+                <div class="slider-bounds">
+                  <span>13 months</span>
+                  <span>240 months</span>
+                </div>
+              </div>
+            </section>
+
+            <div class="section">
+              <div class="section-label">Available offers</div>
+
+              <section class="card result-card" data-product="fixed">
+                <p class="result-meta">Cash-payout housing loan</p>
+                <h3 class="result-title">Fiksna obrestna mera</h3>
+                <div class="result-rows">
+                  <div class="result-row"><span>Repayment period</span><span id="fixedPeriod">180 months</span></div>
+                  <div class="result-row"><span>Approval costs</span><span>0,00 EUR</span></div>
+                  <div class="result-row"><span>Interest rate</span><span data-extra="rate">3,55 %</span></div>
+                  <div class="result-row"><span>Effective interest rate (EOM)</span><span>3,74 %</span></div>
+                  <div class="result-row result-row--extra"><span>Loan amount</span><span data-extra="loan-amount">50.000,00 EUR</span></div>
+                  <div class="result-row result-row--extra"><span>Monthly account fee</span><span>3,10 EUR / monthly</span></div>
+                  <div class="result-row result-row--extra"><span>Total loan costs</span><span data-extra="fixed-total-costs">—</span></div>
+                  <div class="result-row result-row--extra"><span>Total amount to be paid</span><span data-extra="fixed-total-paid">—</span></div>
+                  <div class="result-row result-row--extra"><span>Type of Insurance</span><span data-extra="insurance">Loan insurance with real estate</span></div>
+                </div>
+                <button class="result-more-link" type="button">More</button>
+                <p class="result-monthly">
+                  <span class="result-monthly-value" id="fixedMonthly">358,67 EUR</span>
+                  <span class="result-monthly-unit">/ month</span>
+                </p>
+                <div class="result-actions">
+                  <button class="btn-pill btn-pill--interested" type="button">I am interested</button>
+                </div>
+                <p class="result-callback-note">No commitment — a banker will call you back to guide you through the application.</p>
+                <button class="show-more" type="button">Show more</button>
+              </section>
+
+              <section class="card result-card" data-product="variable">
+                <p class="result-meta">Cash-payout housing loan</p>
+                <h3 class="result-title">Sestavljena spremenljiva obrestna mera</h3>
+                <div class="result-rows">
+                  <div class="result-row"><span>Repayment period</span><span id="varPeriod">180 months</span></div>
+                  <div class="result-row"><span>Approval costs</span><span>0,00 EUR</span></div>
+                  <div class="result-row"><span>Interest rate</span><span data-extra="rate">3,84 %</span></div>
+                  <div class="result-row"><span>Effective interest rate (EOM)</span><span>4,04 %</span></div>
+                  <div class="result-row result-row--extra"><span>Loan amount</span><span data-extra="loan-amount">50.000,00 EUR</span></div>
+                  <div class="result-row result-row--extra"><span>Monthly account fee</span><span>3,10 EUR / monthly</span></div>
+                  <div class="result-row result-row--extra"><span>Total loan costs</span><span data-extra="var-total-costs">—</span></div>
+                  <div class="result-row result-row--extra"><span>Total amount to be paid</span><span data-extra="var-total-paid">—</span></div>
+                  <div class="result-row result-row--extra"><span>Type of Insurance</span><span data-extra="insurance">Loan insurance with real estate</span></div>
+                </div>
+                <button class="result-more-link" type="button">More</button>
+                <p class="result-monthly">
+                  <span class="result-monthly-value" id="varMonthly">365,85 EUR</span>
+                  <span class="result-monthly-unit">/ month</span>
+                </p>
+                <div class="result-actions">
+                  <button class="btn-pill btn-pill--interested" type="button">I am interested</button>
+                </div>
+                <p class="result-callback-note">No commitment — a banker will call you back to guide you through the application.</p>
+                <button class="show-more" type="button">Show more</button>
+              </section>
             </div>
-          </div>
-        </section>
+          </div><!-- /calc-panel housing -->
 
-        <section class="card card--summary">
-          <div class="summary-text">
-            <p class="summary-label">Monthly payment</p>
-            <p class="summary-value" id="monthlyValue">289,30 EUR</p>
-          </div>
-          <button class="btn" id="startBtn" type="button"
-            data-prototype-tooltip="Prototype note: routes to the best-fit flow. mLoan-eligible client and amount ≤ 10.000 EUR → in-app mLoan flow. Otherwise → hand off to Kredit Naprej in the browser, with amount and period carried over so nothing has to be retyped."
-            data-prototype-tooltip-anchor="right">
-            <span>start</span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="#FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </section>
-
-        <div class="card-actions">
-          <button class="chip" type="button">
-            <svg class="chip-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span class="chip-text">detailed calculation</span>
-          </button>
-          <button class="chip" type="button">
-            <span class="chip-text">More</span>
-          </button>
-        </div>
         </div><!-- /section--calc -->
       </main>
 
@@ -1302,7 +1714,7 @@
 
             <div class="card">
               <p class="ap-label ap-label--soft">Interest rate</p>
-              <p class="ap-value ap-value--soft" style="margin-top:4px">2.20%</p>
+              <p class="ap-value ap-value--soft" style="margin-top:4px">2,20%</p>
             </div>
 
             <div class="card card--row">
@@ -1369,6 +1781,94 @@
 
 
     <!-- ═══════════════════════════════════════════════════════
+         BOTTOMSHEET — "I'm interested" application summary
+         ═══════════════════════════════════════════════════════ -->
+    <div class="bottomsheet" id="interestedSheet" aria-hidden="true" role="dialog" aria-labelledby="interestedTitle">
+      <div class="bottomsheet-backdrop" data-action="close-interested"></div>
+      <div class="bottomsheet-panel">
+        <div class="bottomsheet-handle" aria-hidden="true"></div>
+        <h3 class="bottomsheet-title" id="interestedTitle">Apply for housing loan</h3>
+        <p class="bottomsheet-body">
+          Review your selection and pick the branch where you'd like to complete the application.
+        </p>
+        <div class="bottomsheet-summary">
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Product</span>
+            <span class="bottomsheet-row-value" id="interestProduct">Fiksna obrestna mera</span>
+          </div>
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Loan type</span>
+            <span class="bottomsheet-row-value" id="interestLoanType">Cash payout</span>
+          </div>
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Amount</span>
+            <span class="bottomsheet-row-value" id="interestAmount">50.000,00 EUR</span>
+          </div>
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Period</span>
+            <span class="bottomsheet-row-value" id="interestPeriod">180 months</span>
+          </div>
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Interest rate</span>
+            <span class="bottomsheet-row-value" id="interestRate">3,55 %</span>
+          </div>
+          <div class="bottomsheet-row">
+            <span class="bottomsheet-row-label">Monthly payment</span>
+            <span class="bottomsheet-row-value" id="interestMonthly">358,67 EUR</span>
+          </div>
+        </div>
+
+        <label class="branch-label" for="branchSelect">Choose your branch</label>
+        <div class="branch-select-wrap">
+          <select class="branch-select" id="branchSelect" name="branch">
+            <option value="ljubljana-center" selected>Ljubljana — Center (your main branch)</option>
+            <option value="ljubljana-siska">Ljubljana — Šiška</option>
+            <option value="ljubljana-vic">Ljubljana — Vič</option>
+            <option value="ljubljana-bezigrad">Ljubljana — Bežigrad</option>
+            <option value="maribor">Maribor — Center</option>
+            <option value="celje">Celje</option>
+            <option value="kranj">Kranj</option>
+            <option value="koper">Koper</option>
+            <option value="novo-mesto">Novo mesto</option>
+            <option value="murska-sobota">Murska Sobota</option>
+          </select>
+          <svg class="branch-select-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <div class="bottomsheet-actions">
+          <button class="btn-large" id="interestConfirm" type="button">Submit application</button>
+          <button class="btn--ghost" data-action="close-interested" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         BOTTOMSHEET — "Application submitted" confirmation
+         ═══════════════════════════════════════════════════════ -->
+    <div class="bottomsheet bottomsheet-centered" id="submittedSheet" aria-hidden="true" role="dialog" aria-labelledby="submittedTitle">
+      <div class="bottomsheet-backdrop" data-action="close-submitted"></div>
+      <div class="bottomsheet-panel">
+        <div class="bottomsheet-handle" aria-hidden="true"></div>
+        <div class="submitted-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="bottomsheet-title" id="submittedTitle">Application submitted</h3>
+        <p class="bottomsheet-body">
+          Thank you! A banker from <strong id="submittedBranch">Ljubljana — Center</strong> will call you back within 1 business day to walk you through the next steps.
+        </p>
+        <div class="bottomsheet-actions">
+          <button class="btn-large" data-action="close-submitted" type="button">Got it</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════
          REDIRECT OVERLAY — simulates browser open
          ═══════════════════════════════════════════════════════ -->
     <div class="redirect-overlay" id="redirectOverlay" aria-hidden="true">
@@ -1391,6 +1891,7 @@
       mLoanMin: 200,
       mLoanMax: 10000,
       mLoanStep: 100,
+      offerAmount: 5000,           // pre-approved mLoan offer shown on the carousel banner
       defaults: { amount: 15000, months: 60 },
     };
 
@@ -1513,9 +2014,11 @@
     /* ---------- screen 2 (apply) ---------- */
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    function syncApplyScreen() {
-      // amount is clamped to mLoan range (we should only get here if amount ≤ 10K)
-      const amt = clamp(state.amount, CONFIG.mLoanMin, CONFIG.mLoanMax);
+    function syncApplyScreen(amountOverride) {
+      // Clamp to the mLoan range. An optional override lets a specific entry point
+      // (e.g. the "up to 5000€" offer banner) seed a starting amount.
+      const base = (amountOverride != null) ? amountOverride : state.amount;
+      const amt = clamp(base, CONFIG.mLoanMin, CONFIG.mLoanMax);
       state.amount = amt;
       $applyAmountValue.textContent = String(amt);
 
@@ -1534,6 +2037,16 @@
       if (next === state.amount) return;
       state.amount = next;
       syncApplyScreen();
+    }
+
+    // Carry apply-screen edits (or banner-seeded amounts) back into the loans
+    // calculator, so the visible sliders and routing state never diverge.
+    function syncCalcFromState() {
+      $amountSlider.value = clamp(state.amount, +$amountSlider.min, +$amountSlider.max);
+      $periodSlider.value = clamp(state.months, +$periodSlider.min, +$periodSlider.max);
+      paintSlider($amountSlider);
+      paintSlider($periodSlider);
+      recalc();
     }
 
     /* ---------- bottomsheet ---------- */
@@ -1582,11 +2095,13 @@
       setAmountThresholdTick();
       recalc();
 
-      // Centre the active chip
-      if ($chipBar && $activeChip) {
-        const target = $activeChip.offsetLeft - $chipBar.clientWidth / 2 + $activeChip.offsetWidth / 2;
-        $chipBar.scrollLeft = Math.max(0, target);
+      // Centre the active chip — shared by init AND chip-click handler below.
+      function centerChip(chip, smooth = false) {
+        if (!$chipBar || !chip) return;
+        const target = chip.offsetLeft - $chipBar.clientWidth / 2 + chip.offsetWidth / 2;
+        $chipBar.scrollTo({ left: Math.max(0, target), behavior: smooth ? 'smooth' : 'auto' });
       }
+      centerChip($activeChip);
 
       // START
       $startBtn.addEventListener('click', onStart);
@@ -1594,29 +2109,20 @@
       // One-click "set to 10.000 EUR" shortcut
       $amountAside.addEventListener('click', quickSetMLoanMax);
 
-      // Promo banner — X toggles between the two variants for prototype testing
-      // (in production X would dismiss). Apply on either variant routes to the
-      // mLoan apply screen; syncApplyScreen() clamps state.amount into range.
-      const $promoBanner = document.getElementById('promoBanner');
-      const $promoTitle  = document.getElementById('promoTitle');
-      const PROMO_COPY = {
-        offer:     'Stanko, you have up to 5000€ loan offer.',
-        discovery: 'Find out how much you can get',
-      };
-      document.getElementById('promoClose')?.addEventListener('click', () => {
-        const next = $promoBanner.dataset.variant === 'offer' ? 'discovery' : 'offer';
-        $promoBanner.dataset.variant = next;
-        if ($promoTitle) $promoTitle.textContent = PROMO_COPY[next];
-      });
+      // Carousel "Apply" (mLoan offer slide) → mLoan apply screen, seeded with the
+      // pre-approved offer amount so the screen matches the banner copy.
       document.getElementById('promoApply')?.addEventListener('click', () => {
-        syncApplyScreen();
+        syncApplyScreen(CONFIG.offerAmount);
         showScreen('apply');
       });
 
       // Apply screen wiring
       $amountMinus.addEventListener('click', () => adjustApplyAmount(-CONFIG.mLoanStep));
       $amountPlus .addEventListener('click', () => adjustApplyAmount(+CONFIG.mLoanStep));
-      $backBtn.addEventListener('click', () => showScreen('loans'));
+      $backBtn.addEventListener('click', () => {
+        syncCalcFromState();
+        showScreen('loans');
+      });
       $nextBtn.addEventListener('click', () => {
         console.log('[loan-prototype] NEXT (mLoan apply step 1 → step 2)', { ...state });
       });
@@ -1631,22 +2137,291 @@
         console.log('[loan-prototype] REDIRECT to Kredit Naprej (browser)', { ...state });
       });
 
-      // Tips toggle (prototype reviewer tool) — persists across reloads
-      const $protoToggle = document.getElementById('protoToggle');
-      const setTipsEnabled = (on) => {
-        document.body.classList.toggle('tips-off', !on);
-        $protoToggle.setAttribute('aria-checked', String(on));
-        try { localStorage.setItem('protoTipsEnabled', on ? '1' : '0'); } catch {}
-      };
-      $protoToggle.addEventListener('click', () => {
-        setTipsEnabled($protoToggle.getAttribute('aria-checked') !== 'true');
+      // ─── Phase switch (prototype-only): Phase 1 = consumer loans, Phase 2 = + housing ───
+      // Flips a single data-phase flag on .app; CSS hides/shows .phase-2-only content.
+      // selectCalcProduct() and rebuildCarousel() are hoisted function declarations below.
+      const $app = document.querySelector('.app');
+      function switchPhase(phase) {
+        $app.dataset.phase = phase;
+        document.querySelectorAll('.phase-opt[data-phase]').forEach((b) => {
+          b.classList.toggle('phase-opt--active', b.dataset.phase === phase);
+        });
+        // Phase 1 hides the housing calc panel — make sure a visible panel remains.
+        if (phase === '1') selectCalcProduct('personal');
+        rebuildCarousel(); // slide & dot count differ between phases
+      }
+      document.querySelectorAll('.phase-opt[data-phase]').forEach((btn) => {
+        btn.addEventListener('click', () => switchPhase(btn.dataset.phase));
       });
-      let initialTipsOn = true;
-      try {
-        const stored = localStorage.getItem('protoTipsEnabled');
-        if (stored !== null) initialTipsOn = stored === '1';
-      } catch {}
-      setTipsEnabled(initialTipsOn);
+
+      // ─── Loan calculator product switch (Personal / Housing) ───
+      function selectCalcProduct(product /* 'personal' | 'housing' */) {
+        document.querySelectorAll('.seg-option[data-calc-product]').forEach((b) => {
+          b.classList.toggle('seg-option--active', b.dataset.calcProduct === product);
+        });
+        document.querySelectorAll('.calc-panel[data-calc-panel]').forEach((p) => {
+          p.hidden = p.dataset.calcPanel !== product;
+        });
+      }
+      document.querySelectorAll('.seg-option[data-calc-product]').forEach((btn) => {
+        btn.addEventListener('click', () => selectCalcProduct(btn.dataset.calcProduct));
+      });
+
+      // Scroll the calculator into view (used by the discovery + housing banner CTAs)
+      function scrollToCalc() {
+        document.getElementById('calcSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      document.getElementById('discoveryCalc')?.addEventListener('click', () => {
+        selectCalcProduct('personal');
+        scrollToCalc();
+      });
+      document.getElementById('housingCalcCta')?.addEventListener('click', () => {
+        selectCalcProduct('housing');
+        scrollToCalc();
+      });
+
+      // ─── Hero carousel — rebuildable so the phase switch can change slide count ───
+      // Phase 1 shows offer + discovery; Phase 2 also reveals the housing slide.
+      // Only currently-visible slides (not .phase-2-only-hidden) get a dot. After one
+      // passive loop it parks on slide 0 (the highest-value offer) and stops. Any
+      // touch/swipe/dot tap ends auto-rotation for good; desktop hover only pauses;
+      // reduced-motion users get no auto-rotation at all (swiping still works).
+      const cTrack    = document.getElementById('carouselTrack');
+      const cDotsWrap = document.getElementById('carouselDots');
+      const cReduced  = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      let cSlides = [], cCurrent = 0, cTimer = null, cAdvances = 0, cAutoDone = false;
+      let cProgrammatic = false, cProgTimer = null, cHoverPaused = false;
+
+      function cStop()    { if (cTimer) { clearInterval(cTimer); cTimer = null; } }
+      function cEndAuto() { cAutoDone = true; cStop(); }
+      function cPaintDots() {
+        Array.from(cDotsWrap.children).forEach((d, i) =>
+          d.classList.toggle('carousel-dot--active', i === cCurrent));
+      }
+      // Flag our own scrolls so the user-engagement detector ignores them.
+      function cScrollToCurrent(behavior) {
+        cProgrammatic = true;
+        clearTimeout(cProgTimer);
+        cTrack.scrollTo({ left: cTrack.clientWidth * cCurrent, behavior });
+        cProgTimer = setTimeout(() => { cProgrammatic = false; }, 700);
+      }
+      function cGoTo(i) {
+        if (!cSlides.length) return;
+        cCurrent = (i + cSlides.length) % cSlides.length;
+        cScrollToCurrent('smooth');
+        cPaintDots();
+      }
+      function cStart() {
+        if (cAutoDone || cSlides.length <= 1) return;
+        cStop();
+        cTimer = setInterval(() => {
+          cAdvances += 1;
+          cGoTo(cCurrent + 1);
+          if (cAdvances >= cSlides.length) cEndAuto(); // full loop shown → park on slide 0
+        }, 5000);
+      }
+      // Re-derive slides/dots from what's currently visible. Safe to call repeatedly
+      // (phase switch); track-level listeners are bound once, below.
+      function rebuildCarousel() {
+        if (!cTrack || !cDotsWrap) return;
+        cStop();
+        cCurrent = 0;
+        cAdvances = 0;
+        cAutoDone = cReduced;
+        cHoverPaused = false;
+        cSlides = Array.from(cTrack.children).filter((s) => getComputedStyle(s).display !== 'none');
+        cDotsWrap.innerHTML = '';
+        cSlides.forEach((_, i) => {
+          const dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'carousel-dot' + (i === 0 ? ' carousel-dot--active' : '');
+          dot.addEventListener('click', () => { cEndAuto(); cGoTo(i); });
+          cDotsWrap.appendChild(dot);
+        });
+        cScrollToCurrent('auto');
+        cPaintDots();
+        cStart();
+      }
+      if (cTrack && cDotsWrap) {
+        // Settle scroll → sync dots; any USER-initiated scroll (touch, trackpad,
+        // or wheel) counts as engagement and ends auto-rotation. cProgrammatic
+        // guards our own goTo()/rebuild scrolls so the loop never self-cancels.
+        let cScrollDebounce;
+        cTrack.addEventListener('scroll', () => {
+          clearTimeout(cScrollDebounce);
+          cScrollDebounce = setTimeout(() => {
+            const i = Math.round(cTrack.scrollLeft / cTrack.clientWidth);
+            if (i >= 0 && i < cSlides.length && i !== cCurrent) { cCurrent = i; cPaintDots(); }
+            if (!cProgrammatic) cEndAuto();
+          }, 90);
+        });
+        // Immediate engagement signals (pointer / touch drag).
+        cTrack.addEventListener('pointerdown', cEndAuto);
+        cTrack.addEventListener('touchstart', cEndAuto, { passive: true });
+        // Desktop hover pauses; resume ONLY what hover paused, never after engagement.
+        cTrack.addEventListener('mouseenter', () => { if (cTimer) { cHoverPaused = true; cStop(); } });
+        cTrack.addEventListener('mouseleave', () => { if (cHoverPaused && !cAutoDone) cStart(); cHoverPaused = false; });
+        rebuildCarousel();
+      }
+
+      // ─── Housing calculator: live recalc on slider input ───
+      const HOUS_RATES = { fixed: 0.0355, variable: 0.0384 };
+      const $housAmount      = document.getElementById('housAmountSlider');
+      const $housPeriod      = document.getElementById('housPeriodSlider');
+      const $housAmountValue = document.getElementById('housAmountValue');
+      const $housPeriodValue = document.getElementById('housPeriodValue');
+      const $fixedPeriod     = document.getElementById('fixedPeriod');
+      const $fixedMonthly    = document.getElementById('fixedMonthly');
+      const $varPeriod       = document.getElementById('varPeriod');
+      const $varMonthly      = document.getElementById('varMonthly');
+
+      const HOUS_MONTHLY_FEE = 3.10;
+      function recalcHousing() {
+        const amount = +$housAmount.value;
+        const months = +$housPeriod.value;
+        $housAmountValue.textContent = formatEUR(amount);
+        $housPeriodValue.textContent = formatMonths(months);
+        $fixedPeriod.textContent     = formatMonths(months);
+        $varPeriod.textContent       = formatMonths(months);
+
+        const fixedM = calculateMonthlyPayment(amount, months, HOUS_RATES.fixed);
+        const varM   = calculateMonthlyPayment(amount, months, HOUS_RATES.variable);
+        $fixedMonthly.textContent = formatEUR(fixedM);
+        $varMonthly.textContent   = formatEUR(varM);
+
+        // Extras revealed via "Show more"
+        const amountStr = formatEUR(amount);
+        document.querySelectorAll('[data-extra="loan-amount"]').forEach((el) => { el.textContent = amountStr; });
+        const fixedTotalPaid = (fixedM + HOUS_MONTHLY_FEE) * months;
+        const varTotalPaid   = (varM   + HOUS_MONTHLY_FEE) * months;
+        document.querySelectorAll('[data-extra="fixed-total-costs"]').forEach((el) => { el.textContent = formatEUR(fixedTotalPaid - amount); });
+        document.querySelectorAll('[data-extra="fixed-total-paid"]').forEach((el) => { el.textContent = formatEUR(fixedTotalPaid); });
+        document.querySelectorAll('[data-extra="var-total-costs"]').forEach((el) => { el.textContent = formatEUR(varTotalPaid - amount); });
+        document.querySelectorAll('[data-extra="var-total-paid"]').forEach((el) => { el.textContent = formatEUR(varTotalPaid); });
+      }
+      if ($housAmount && $housPeriod) {
+        [$housAmount, $housPeriod].forEach((slider) => {
+          paintSlider(slider);
+          slider.addEventListener('input', () => {
+            paintSlider(slider);
+            recalcHousing();
+          });
+        });
+        recalcHousing();
+      }
+
+      // ─── "Show more" / "Show less" toggle per offer card ───
+      document.querySelectorAll('.show-more').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const card = btn.closest('.result-card');
+          if (!card) return;
+          const expanded = card.classList.toggle('result-card--expanded');
+          btn.textContent = expanded ? 'Show less' : 'Show more';
+        });
+      });
+
+      // ─── Insurance selection → reflect in the expanded "Type of Insurance" row ───
+      function updateInsuranceLabels() {
+        const checked = document.querySelector('input[name="hous-insurance"]:checked');
+        if (!checked) return;
+        const text = checked.closest('.radio-option')?.querySelector('.radio-text')?.textContent ?? '';
+        document.querySelectorAll('[data-extra="insurance"]').forEach((el) => { el.textContent = text; });
+      }
+      document.querySelectorAll('input[name="hous-insurance"]').forEach((radio) => {
+        radio.addEventListener('change', updateInsuranceLabels);
+      });
+      updateInsuranceLabels();
+
+      // ─── Housing loan type (Earmarked / Cash payout) — updates result meta ───
+      const LOAN_TYPE_META = {
+        earmarked: 'Earmarked housing loan',
+        cash:      'Cash-payout housing loan',
+      };
+      document.querySelectorAll('.seg-option[data-loan-type]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const type = btn.dataset.loanType;
+          document.querySelectorAll('.seg-option[data-loan-type]').forEach((b) => {
+            b.classList.toggle('seg-option--active', b === btn);
+          });
+          document.querySelectorAll('[data-calc-panel="housing"] .result-meta').forEach((el) => {
+            el.textContent = LOAN_TYPE_META[type];
+          });
+        });
+      });
+
+      // ─── "I am interested" → open bottomsheet with summary + branch picker ───
+      const $interestedSheet  = document.getElementById('interestedSheet');
+      const $interestProduct  = document.getElementById('interestProduct');
+      const $interestLoanType = document.getElementById('interestLoanType');
+      const $interestAmount   = document.getElementById('interestAmount');
+      const $interestPeriod   = document.getElementById('interestPeriod');
+      const $interestRate     = document.getElementById('interestRate');
+      const $interestMonthly  = document.getElementById('interestMonthly');
+      const $branchSelect     = document.getElementById('branchSelect');
+
+      function openInterestedSheet(card) {
+        // Pull values from the offer card the user tapped + current housing inputs.
+        const product   = card.querySelector('.result-title')?.textContent ?? '';
+        const monthly   = card.querySelector('.result-monthly-value')?.textContent ?? '';
+        const rate = card.querySelector('[data-extra="rate"]')?.textContent ?? '';
+        const activeSeg = document.querySelector('.seg-option[data-loan-type].seg-option--active');
+        const loanType  = activeSeg?.textContent ?? 'Cash payout';
+        const amount    = document.getElementById('housAmountValue')?.textContent ?? '';
+        const period    = document.getElementById('housPeriodValue')?.textContent ?? '';
+
+        $interestProduct.textContent  = product;
+        $interestLoanType.textContent = loanType;
+        $interestAmount.textContent   = amount;
+        $interestPeriod.textContent   = period;
+        $interestRate.textContent     = rate;
+        $interestMonthly.textContent  = monthly;
+
+        $interestedSheet.setAttribute('aria-hidden', 'false');
+      }
+      function closeInterestedSheet() {
+        $interestedSheet.setAttribute('aria-hidden', 'true');
+      }
+
+      document.querySelectorAll('.btn-pill--interested').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const card = btn.closest('.result-card');
+          if (card) openInterestedSheet(card);
+        });
+      });
+      document.querySelectorAll('[data-action="close-interested"]').forEach((el) => {
+        el.addEventListener('click', closeInterestedSheet);
+      });
+      document.getElementById('interestConfirm')?.addEventListener('click', () => {
+        // Resolve selected branch label, stripping the "(your main branch)" suffix.
+        const rawLabel = $branchSelect?.options[$branchSelect.selectedIndex]?.textContent ?? '';
+        const cleanBranch = rawLabel.replace(/\s*\(.*?\)\s*$/, '').trim() || 'Ljubljana — Center';
+
+        console.log('[housing-application] submitted', {
+          product:  $interestProduct.textContent,
+          loanType: $interestLoanType.textContent,
+          amount:   $interestAmount.textContent,
+          period:   $interestPeriod.textContent,
+          rate:     $interestRate.textContent,
+          monthly:  $interestMonthly.textContent,
+          branch:   cleanBranch,
+        });
+
+        // Slide the interested sheet down, then slide the confirmation sheet up
+        // after a short beat so the two transitions don't visually overlap.
+        const $submittedBranch = document.getElementById('submittedBranch');
+        if ($submittedBranch) $submittedBranch.textContent = cleanBranch;
+        closeInterestedSheet();
+        setTimeout(() => {
+          document.getElementById('submittedSheet')?.setAttribute('aria-hidden', 'false');
+        }, 220);
+      });
+
+      // Confirmation sheet — dismiss via "Got it" button or backdrop tap
+      document.querySelectorAll('[data-action="close-submitted"]').forEach((el) => {
+        el.addEventListener('click', () => {
+          document.getElementById('submittedSheet')?.setAttribute('aria-hidden', 'true');
+        });
+      });
     }
 
     if (document.readyState === 'loading') {

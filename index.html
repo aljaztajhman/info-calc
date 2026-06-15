@@ -2167,9 +2167,16 @@
         btn.addEventListener('click', () => selectCalcProduct(btn.dataset.calcProduct));
       });
 
-      // Scroll the calculator into view (used by the discovery + housing banner CTAs)
+      // Scroll the calculator into view (used by the discovery + housing banner CTAs).
+      // Scroll ONLY the in-app content area — scrollIntoView() would also scroll the
+      // outer viewport/preview, shoving the whole phone frame up and exposing the
+      // page background below the bottom nav. The browser clamps an over-target top.
       function scrollToCalc() {
-        document.getElementById('calcSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const content = document.querySelector('.screen[data-screen="loans"] .content');
+        const calc = document.getElementById('calcSection');
+        if (!content || !calc) return;
+        const delta = calc.getBoundingClientRect().top - content.getBoundingClientRect().top;
+        content.scrollTo({ top: content.scrollTop + delta, behavior: 'smooth' });
       }
       document.getElementById('discoveryCalc')?.addEventListener('click', () => {
         selectCalcProduct('personal');
